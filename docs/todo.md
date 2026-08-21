@@ -21,6 +21,7 @@
 - [x] Vertical flip
 - [x] Arbitrary rotation via modal
 - [x] Linux cross-compilation (`cargo linux`)
+- [x] Add support to do image adjustments (the adjustments window) only within the seleciton box, if a box is active
 - [ ] Fixed-increment rotation via keybind/menu
 - [ ] Save / Save As modal and functionality
 - [ ] Custom view mode between "100% zoom" and "fit to window" *(TBD — may not be worth it)*
