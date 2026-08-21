@@ -30,16 +30,18 @@
 
 ## Changes
 
-- [ ] Stop following the system light/dark color scheme for the window background — use a static dark gray or black instead (pure white is jarring)
-- [ ] Center the Apply/Cancel buttons in the rotation modal and add proper spacing between them
-- [ ] Fix clipboard copy, which no longer works now that flips are done on the GPU instead of in software
-- [ ] Break the R/G/B adjustment modal out into its own window so it isn't constrained by the main window's size
+- [ ] Stop following the system light/dark color scheme for the window background — use a static dark gray or black instead (pure white is jarring).
+- [ ] Center the Apply/Cancel buttons in the rotation modal and add proper spacing between them.
+- [ ] Fix clipboard copy, which no longer works now that flips are done on the GPU instead of in software.
+- [ ] Break the R/G/B adjustment modal out into its own window so it isn't constrained by the main window's size.
+- [ ] Make the sliders in the image adjustment window wider.
 
 ## Bug Fixes
 
 - [x] Rotation modal thumbnail preview was stretched to fit — now scaled to the longest axis, with aspect ratio preserved and centered on the shorter axis
 - [x] Diagnosed and fixed copy-to-clipboard, which had code in place but wasn't working
 - [ ] Entering fullscreen while the window is maximized leaves a black bar where the taskbar used to be; doesn't occur when entering fullscreen from a non-maximized state
+- [ ] Dragging the saturation control to the left until the text control reads "0.00" should *stop* adjustments, but instead you can continue dragging to the left and the image resaturates.
 
 ## Settings Modal — Planned Contents
 
