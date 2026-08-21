@@ -1,44 +1,54 @@
-# River - Rust Image ViewER -- A Paul-only feature replacement for Irfanview for Linux
+# River — Rust Image Viewer
 
-## Features - Simple
-[ ] Settings modal
-[x] Fullscreen mode
-[x] Fully borderless window mode with draggable edges/sides
-[ ] About help menu and modal (very low priority)
-[x] Adjustable selection box for zooming
-[ ] Find out how to make Linux accept the app under "Open With".
-[ ] Add "add_enabled()" stuff to *all* the app menu bar commands other than "Open File" and "Close"?
+*A Paul-only feature replacement for IrfanView on Linux*
 
-## Features - Complex
-[x] Adjust R/G/B levels, contrast, brightness, saturation via modal with static thumbnail and live thumbnail preview
-[x] Horizontal flip
-[x] Vertical flip
-[x] Arbitrary rotation via modal
-[ ] fixed rotation via key bind/menu
-[ ] Save/Save As modal and functionality
-[x] Linux cross-compilation (build with "cargo linux")
-[ ] Add/build out the custom view mode that sits between "100% zoom" and "fit to window". (or not?)
-[ ] Undo (undo rotation, flip, RGB/contrast/bright/gamma/saturation, change size), multiple levels.
-[ ] Triggering image adjusment window when a selection is drawn will only edit that selection
-[ ] Actually implement (or fix if broken) the "drag and drop image onto app to load" feature.
+---
+
+## Simple Features
+
+- [x] Fullscreen mode
+- [x] Fully borderless window mode with draggable edges/sides
+- [x] Adjustable selection box for zooming
+- [ ] Settings modal
+- [ ] Add `add_enabled()` guards to all menu bar commands other than "Open File" and "Close"
+- [ ] Figure out how to make Linux recognize the app under "Open With"
+- [ ] About / Help menu and modal *(very low priority)*
+
+## Complex Features
+
+- [x] Adjust R/G/B levels, contrast, brightness, and saturation via a modal with a static "before" thumbnail and a live preview
+- [x] Horizontal flip
+- [x] Vertical flip
+- [x] Arbitrary rotation via modal
+- [x] Linux cross-compilation (`cargo linux`)
+- [ ] Fixed-increment rotation via keybind/menu
+- [ ] Save / Save As modal and functionality
+- [ ] Custom view mode between "100% zoom" and "fit to window" *(TBD — may not be worth it)*
+- [ ] Undo support (rotation, flip, RGB/contrast/brightness/gamma/saturation, resize), with multiple undo levels
+- [ ] Restrict the adjustment modal to the active selection, if one is drawn
+- [ ] Implement (or fix, if broken) drag-and-drop image loading
 
 ## Changes
-[ ] Currently egui adopts the system color scheme of light/dark. That's fine, but let's make the window background static dark gray or black. Full white is awful.
-[ ] Center the Apply and Cancel buttons in the rotation modal; add decent spacing between them.
-[ ] The clipboard copy really won't work now that we're doing GPU image flips instead of software.
-[ ] The editor (R/G/B etc) modal lives inside the window, it needs to become its own window to escape size constraints.
 
-## Bug fixes
-[x] The image thumbnail preview in the rotation modal is stretched to fit the modal. We should fit it based on the longest axis and then apply its ratio and then center it based on the most narrow axis.
-[x] Find out why copy-to-clipboard has code but doesn't work.
-[ ] Entering fullscreen mode when the window is maximized causes a black bar to appear beneath the image where the Windows task bar used to be. This doesn't happen if you activate fullscreen when the window is not maximized.
+- [ ] Stop following the system light/dark color scheme for the window background — use a static dark gray or black instead (pure white is jarring)
+- [ ] Center the Apply/Cancel buttons in the rotation modal and add proper spacing between them
+- [ ] Fix clipboard copy, which no longer works now that flips are done on the GPU instead of in software
+- [ ] Break the R/G/B adjustment modal out into its own window so it isn't constrained by the main window's size
 
-## Settings Modal
-[ ] Zoom factor stuff
-[ ] Background color
-[ ] Default view mode?
-[ ] Key binds? This could be messy.
+## Bug Fixes
 
-## Misc things
-[x] Ask an LLM why Ifranview is faster at image flips than RIVER is when RIVER is supposedly using the GPU. [FIXED]
-[ ] Have the LLM (which wrote the code in the first place) examine the initial image loading and display for potential optimizations like we got with the image flip.
+- [x] Rotation modal thumbnail preview was stretched to fit — now scaled to the longest axis, with aspect ratio preserved and centered on the shorter axis
+- [x] Diagnosed and fixed copy-to-clipboard, which had code in place but wasn't working
+- [ ] Entering fullscreen while the window is maximized leaves a black bar where the taskbar used to be; doesn't occur when entering fullscreen from a non-maximized state
+
+## Settings Modal — Planned Contents
+
+- [ ] Zoom factor behavior
+- [ ] Background color
+- [ ] Default view mode
+- [ ] Keybinds *(could get messy)*
+
+## Misc / Research
+
+- [x] Asked an LLM why IrfanView flips images faster than River, despite River supposedly using the GPU — **resolved**
+- [ ] Have the LLM that wrote River's code review the initial image loading/display path for optimizations, similar to the image-flip fix
