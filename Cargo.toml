@@ -1,0 +1,38 @@
+[package]
+name = "river"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+eframe = {
+	version = "0.35.0",
+	default-features = false,
+	features = [
+		"glow",          # Lightweight OpenGL renderer (replaces wgpu)
+		"default_fonts", # Embeds standard UI fonts
+		# "persistence", # Uncomment ONLY if you auto-save window state/geometry
+	]
+}
+rfd = "0.17.2"
+arboard = "3.4"
+imageproc = "0.23"
+windows-sys = { version = "0.59", features = ["Win32_System_Power"] }
+image = { version = "0.24", default-features = false, features = ["png", "jpeg", "bmp", "webp", "gif"] }
+
+[build-dependencies]
+thunk-rs = { version = "0.3.5", features = ["win7", "subsystem_windows"] }
+
+# Enables Linux display backends on egui-winit without activating egui-wgpu
+[target.'cfg(target_os = "linux")'.dependencies]
+egui-winit = { version = "0.36.1", default-features = false, features = ["x11", "wayland"] }
+
+[profile.release]
+strip = true       # Removes all debug symbols and symbol tables
+lto = true         # Cross-crate dead code elimination
+codegen-units = 1  # Maximizes LTO effectiveness
+opt-level = 3      # Optimize for speeeeed
+panic = "abort"    # Drops unwinding tables
+
+[features]
+default = []
+win7 = []

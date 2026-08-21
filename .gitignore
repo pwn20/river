@@ -1,0 +1,21 @@
+# Build output
+/target
+
+# Vendored/redistributable DLLs — rebuilt or fetched separately, not tracked
+/mesa3d_dlls
+
+# Deprecated tooling, no longer used by the build
+/tools
+
+# Misc build artifacts
+*.pdb
+src.zip
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp

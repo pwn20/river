@@ -1,0 +1,3 @@
+LIBRARY combase
+EXPORTS
+    CoTaskMemFree=ole32.CoTaskMemFree

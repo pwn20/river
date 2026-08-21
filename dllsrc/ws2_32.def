@@ -1,0 +1,26 @@
+LIBRARY ws2_32
+EXPORTS
+    GetHostNameW
+    WSAStartup=C:\Windows\System32\ws2_32.WSAStartup
+    WSACleanup=C:\Windows\System32\ws2_32.WSACleanup
+    WSAGetLastError=C:\Windows\System32\ws2_32.WSAGetLastError
+    WSAFDIsSet=C:\Windows\System32\ws2_32.WSAFDIsSet
+    getaddrinfo=C:\Windows\System32\ws2_32.getaddrinfo
+    freeaddrinfo=C:\Windows\System32\ws2_32.freeaddrinfo
+    gethostname=C:\Windows\System32\ws2_32.gethostname
+    socket=C:\Windows\System32\ws2_32.socket
+    closesocket=C:\Windows\System32\ws2_32.closesocket
+    bind=C:\Windows\System32\ws2_32.bind
+    connect=C:\Windows\System32\ws2_32.connect
+    send=C:\Windows\System32\ws2_32.send
+    recv=C:\Windows\System32\ws2_32.recv
+    select=C:\Windows\System32\ws2_32.select
+    ioctlsocket=C:\Windows\System32\ws2_32.ioctlsocket
+    setsockopt=C:\Windows\System32\ws2_32.setsockopt
+    getsockopt=C:\Windows\System32\ws2_32.getsockopt
+    getsockname=C:\Windows\System32\ws2_32.getsockname
+    getpeername=C:\Windows\System32\ws2_32.getpeername
+    htons=C:\Windows\System32\ws2_32.htons
+    htonl=C:\Windows\System32\ws2_32.htonl
+    ntohs=C:\Windows\System32\ws2_32.ntohs
+    ntohl=C:\Windows\System32\ws2_32.ntohl
