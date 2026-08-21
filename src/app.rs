@@ -5,104 +5,91 @@ use crate::image_utils;
 use crate::ui;
 use std::path::PathBuf;
 
-/// Top-level application state for the image viewer.
-///
-/// This struct holds everything needed across frames: the currently loaded
-/// image (both the raw `DynamicImage` and its GPU texture), viewport/zoom/pan
-/// state, which dialogs are open and their associated state, selection-box
-/// state (used for crop/resize interactions), and misc. flags used for
-/// windowing behavior (fullscreen, custom chrome, first-frame centering).
-pub struct ImageViewerApp
+/* Top-level application state for the image viewer.
+ *
+ * This struct holds everything needed across frames: the currently loaded
+ * image (both the raw `DynamicImage` and its GPU texture), viewport/zoom/pan
+ * state, which dialogs are open and their associated state, selection-box
+ * state (used for crop/resize interactions), and misc. flags used for
+ * windowing behavior (fullscreen, custom chrome, first-frame centering). */
+ 
+ pub struct ImageViewerApp
 {
-    /// The currently loaded image in CPU memory (decoded pixels), if any.
+    // The currently loaded image in CPU memory (decoded pixels), if any.
     pub image: Option<DynamicImage>,
-    /// GPU texture handle for `image`, used by egui to actually paint it.
-    /// Kept in sync with `image` whenever a new image is loaded.
+    // GPU texture handle for `image`, used by egui to actually paint it. Kept in sync with `image` whenever a new image is loaded.
     pub texture: Option<egui::TextureHandle>,
 
     // Viewport control
-    /// Whether the image should be auto-fit to the window or shown at its
-    /// native/zoomed size (`ActualSize`).
+    // Whether the image should be auto-fit to the window or shown at its native/zoomed size (`ActualSize`).
     pub view_mode: ViewMode,
-    /// Current zoom multiplier applied when in `ActualSize` mode.
+    // Current zoom multiplier applied when in `ActualSize` mode.
     pub zoom_factor: f32,
-    /// Current pan offset (in screen pixels) applied to the image when
-    /// panning/dragging around a zoomed-in image.
+    // Current pan offset (in screen pixels) applied to the image when panning/dragging around a zoomed-in image.
     pub pan_offset: egui::Vec2,
 
     // Window states
-    /// Whether the OS window decorations/toolbar ("chrome") are shown.
-    /// When `false`, the app draws its own resize border (see
-    /// `handle_window_resize_edges`).
+    // Whether the OS window decorations/toolbar ("chrome") are shown. When `false`, the app draws its own resize border (see
+    // `handle_window_resize_edges`).
     pub show_chrome: bool,
-    /// Whether the app window is currently in fullscreen mode.
+    // Whether the app window is currently in fullscreen mode.
     pub is_fullscreen: bool,
 
     // Dialog flags
-    /// Whether the "Resize image" dialog is currently open.
+    // Whether the "Resize image" dialog is currently open.
     pub show_resize_dialog: bool,
-    /// State backing the resize dialog (target width/height, aspect lock, etc).
+    // State backing the resize dialog (target width/height, aspect lock, etc).
     pub resize_state: ResizeState,
-    /// Tracks the current drag interaction (if any) on the selection box
-    /// (e.g. dragging a corner/edge handle vs. idle).
+    // Tracks the current drag interaction (if any) on the selection box (e.g. dragging a corner/edge handle vs. idle).
     pub selection_drag: SelectionDragMode,
-    /// True only on the very first UI update; used to trigger one-time
-    /// startup behavior such as centering the window on screen.
+    // True only on the very first UI update; used to trigger one-time startup behavior such as centering the window on screen.
     pub first_frame: bool,
 
-    /// Whether the "Rotate image" dialog is currently open.
+    // Whether the "Rotate image" dialog is currently open.
     pub show_rotate_dialog: bool,
-    /// State backing the rotate dialog (angle, cached thumbnail, live preview texture).
+    // State backing the rotate dialog (angle, cached thumbnail, live preview texture).
     pub rotate_state: RotateState,
 
-    /// Whether the "Adjust image" dialog (brightness/contrast/etc.) is currently open.
+    // Whether the "Adjust image" dialog (brightness/contrast/etc.) is currently open.
     pub show_adjust_dialog: bool,
-    /// State backing the adjust dialog (slider values, thumbnails, preview texture).
+    // State backing the adjust dialog (slider values, thumbnails, preview texture).
     pub adjust_state: AdjustState,
 
     // Selection Box
-    /// Start corner of an active selection box, in screen coordinates, if the
-    /// user is currently drawing/holding one (e.g. for crop selection).
+    // Start corner of an active selection box, in screen coordinates, if the user is currently drawing/holding one (e.g. for crop selection).
     pub selection_start: Option<egui::Pos2>,
-    /// End corner of an active selection box, in screen coordinates.
+    // End corner of an active selection box, in screen coordinates.
     pub selection_end: Option<egui::Pos2>,
-    /// The screen-space rect the image is currently being painted into; used
-    /// to convert between screen coordinates and image-local coordinates for
-    /// selection/crop math.
+    // The screen-space rect the image is currently being painted into; used to convert between screen coordinates and image-local coordinates for
+    // selection/crop math.
     pub image_rect: Option<egui::Rect>,
 
     // zooming shit to be implemented later via GUI setting
-    /// Default per-scroll-tick zoom increment (not yet exposed in settings UI).
+    // Default per-scroll-tick zoom increment (not yet exposed in settings UI).
     pub default_zoom_step: f32,
-    /// Default zoom increment used when a modifier key is held (e.g. faster zoom).
+    // Default zoom increment used when a modifier key is held (e.g. faster zoom).
     pub default_zoom_step_modified: f32,
 
     // New boolean flags for image flipping via GPU instead of CPU
-    /// Whether the image is currently flipped horizontally. This is applied
-    /// at draw time (GPU/UV-flip) rather than mutating the pixel buffer, for
-    /// performance.
+    // Whether the image is currently flipped horizontally. This is applied at draw time (GPU/UV-flip) rather than mutating the pixel buffer, for performance.
     pub flipped_h: bool,
-    /// Whether the image is currently flipped vertically (drawn, not baked into pixels).
+    // Whether the image is currently flipped vertically (drawn, not baked into pixels).
     pub flipped_v: bool,
 
-    /// If the app was launched indirectly by the OS (such as via file manager) then
-    /// this will be the path to the file to open.
-    ///
-    /// Consumed (via `Option::take`) the first time `open_image` runs so the
-    /// file is only auto-opened once.
+    // If the app was launched indirectly by the OS (such as via file manager) then this will be the path to the file to open.
+    // Consumed (via `Option::take`) the first time `open_image` runs so the file is only auto-opened once.
     pub initial_file: Option<PathBuf>,
 }
-
+//farts
 impl ImageViewerApp
 {
-    /// Constructs the initial application state.
-    ///
-    /// Disables egui's built-in ctrl/cmd + scroll zoom-with-keyboard behavior
-    /// (the app handles zoom itself), and initializes all fields to sensible
-    /// defaults. `initialfile` is an optional path passed in from `main`
-    /// (e.g. when the OS launches the app with a file to open, such as via
-    /// "Open with...").
-    pub fn new(cc: &eframe::CreationContext<'_>, initialfile: Option<PathBuf>) -> Self
+/*  Constructs the initial application state.
+    
+    Disables egui's built-in ctrl/cmd + scroll zoom-with-keyboard behavior (the app handles zoom itself), and initializes all fields to sensible
+    defaults. `initialfile` is an optional path passed in from `main` (e.g. when the OS launches the app with a file to open, such as via
+    "Open with..."). */
+
+     pub fn new(cc: &eframe::CreationContext<'_>, initialfile: Option<PathBuf>) -> Self
     {
         cc.egui_ctx.options_mut(|o| o.zoom_with_keyboard = false);
 
@@ -155,14 +142,10 @@ impl ImageViewerApp
         }
     }
 
-    /// Opens an image, either from `initial_file` (if the app was launched
-    /// with a file to open) or, otherwise, by showing a native "pick file"
-    /// dialog for the user to choose one.
-    ///
-    /// On success, resets flip flags, loads the image into GPU/CPU state via
-    /// `load_dynamic_image`, switches to `FitToWindow` view mode, and resets
-    /// panning. Silently does nothing if decoding fails or the user cancels
-    /// the file dialog.
+/*  Opens an image, either from `initial_file` (if the app was launched with a file to open) or, otherwise, by showing a native "pick file"
+    dialog for the user to choose one. On success, resets flip flags, loads the image into GPU/CPU state via `load_dynamic_image`, switches to
+    `FitToWindow` view mode, and resets panning. Silently does nothing if decoding fails or the user cancels the file dialog. */
+
     pub fn open_image(&mut self, ctx: &egui::Context)
     {
         // If we were launched with a specific file (e.g. double-clicked in a
@@ -195,12 +178,9 @@ impl ImageViewerApp
         }
     }
 
-    /// Loads a decoded `DynamicImage` into app state and uploads it to the
-    /// GPU as an egui texture so it can be displayed.
-    ///
-    /// Also seeds the resize dialog's default width/height/aspect ratio from
-    /// the newly loaded image's dimensions, so opening the resize dialog
-    /// starts from the current image size.
+/*   Loads a decoded `DynamicImage` into app state and uploads it to the GPU as an egui texture so it can be displayed. Also seeds
+     the resize dialog's default width/height/aspect ratio from the newly loaded image's dimensions, so opening the resize dialog
+     starts from the current image size. */
     pub fn load_dynamic_image(&mut self, ctx: &egui::Context, img: DynamicImage)
     {
         let dimensions = img.dimensions();
@@ -219,12 +199,10 @@ impl ImageViewerApp
         self.image = Some(img);
     }
 
-    /// Prepares and opens the rotate dialog.
-    ///
-    /// Generates a small (max 400px on the longest side) thumbnail of the
-    /// current image so rotation previews stay fast, resets the rotation
-    /// angle to 0, and generates the initial preview texture via
-    /// `image_utils::update_rotate_preview`. No-op if no image is loaded.
+/*  Prepares and opens the rotate dialog.
+    Generates a small (max 400px on the longest side) thumbnail of the current image so rotation previews stay fast, resets the rotation
+    angle to 0, and generates the initial preview texture via `image_utils::update_rotate_preview`. No-op if no image is loaded. */
+
     pub fn open_rotate_dialog(&mut self, ctx: &egui::Context)
     {
         if let Some(ref img) = self.image
@@ -246,20 +224,32 @@ impl ImageViewerApp
         }
     }
 
-    /// Prepares and opens the brightness/contrast/etc. "adjust" dialog.
-    ///
-    /// Builds a 512x512-max thumbnail of the current image to use as both
-    /// the "original" reference preview (uploaded once as its own texture)
-    /// and the base image for the live-adjusted preview. Resets adjustment
-    /// sliders to defaults via `adjust_state.reset()` and generates an
-    /// initial preview via `image_utils::update_adjust_preview`. No-op if no
-    /// image is loaded.
+/*  Prepares and opens the brightness/contrast/etc. "adjust" dialog.
+    Builds a 512x512-max thumbnail of the current image to use as both the "original" reference preview (uploaded once as its own texture)
+    and the base image for the live-adjusted preview. Resets adjustment sliders to defaults via `adjust_state.reset()` and generates an
+    initial preview via `image_utils::update_adjust_preview`. No-op if no image is loaded. */
+
     pub fn open_adjust_dialog(&mut self, ctx: &egui::Context)
     {
         if let Some(ref img) = self.image
         {
+            // If there's a large-enough active selection box, scope the
+            // whole dialog to just that region of the full-res image.
+            let source_rect = self.active_selection_image_rect(img);
+
+            // Base the thumbnail/preview pipeline on the selected
+            // sub-region when one exists, otherwise the whole image -
+            // same as before this function knew about selections.
+            let source_img = match source_rect
+            {
+                Some((x, y, w, h)) => DynamicImage::ImageRgba8(
+                    image::imageops::crop_imm(img, x, y, w, h).to_image()
+                ),
+                None => img.clone(),
+            };
+
             // Capture a thumbnail for the original pane and the processing pipeline
-            let thumb = img.thumbnail(512, 512);
+            let thumb = source_img.thumbnail(512, 512);
             let rgba  = thumb.to_rgba8();
             let size  = [rgba.width() as usize, rgba.height() as usize];
             let color_image = egui::ColorImage::from_rgba_unmultiplied(
@@ -273,17 +263,42 @@ impl ImageViewerApp
                 Default::default(),
             ));
             self.adjust_state.thumbnail_base = Some(thumb);
+            self.adjust_state.source_rect = source_rect;
             self.adjust_state.reset();
             image_utils::update_adjust_preview(ctx, &mut self.adjust_state);
             self.show_adjust_dialog = true;
         }
     }
 
-    /// Toggles between `FitToWindow` and `ActualSize` view modes.
-    ///
-    /// Switching to `ActualSize` resets zoom to 1.0 (100%) and clears any
-    /// pan offset; switching back to `FitToWindow` also clears pan offset
-    /// (since fit-to-window recomputes scale/positioning automatically).
+    /* If a large-enough selection box is currently active (same 5x5px
+     * screen-space threshold `main_view.rs` uses to decide whether a
+     * selection "counts"), maps it into full-resolution image pixel
+     * coordinates as (x, y, width, height) via
+     * `image_utils::selection_to_image_rect`. Returns `None` if there's no
+     * selection, it's too small, or there's no known on-screen image rect
+     * to map it from (e.g. before the first frame has drawn the image). */
+    fn active_selection_image_rect(&self, img: &DynamicImage) -> Option<(u32, u32, u32, u32)>
+    {
+        let start = self.selection_start?;
+        let end   = self.selection_end?;
+        let rect  = self.image_rect?;
+
+        let screen_sel = egui::Rect::from_two_pos(start, end);
+        if screen_sel.width() <= 5.0 || screen_sel.height() <= 5.0
+        {
+            return None;
+        }
+
+        let (img_w, img_h) = img.dimensions();
+        Some(image_utils::selection_to_image_rect(
+            start, end, rect, (img_w, img_h), self.flipped_h, self.flipped_v,
+        ))
+    }
+
+/*  Toggles between `FitToWindow` and `ActualSize` view modes. Switching to `ActualSize` resets zoom to 1.0 (100%)
+    and clears any pan offset; switching back to `FitToWindow` also clears pan offset (since fit-to-window
+    recomputes scale/positioning automatically). */
+
     pub fn toggle_view_mode(&mut self)
     {
         if self.view_mode == ViewMode::FitToWindow
@@ -299,25 +314,21 @@ impl ImageViewerApp
         }
     }
 
-    /// Toggles OS-level fullscreen mode for the window, flipping
-    /// `is_fullscreen` and sending the corresponding viewport command to
-    /// eframe/winit.
+    // Toggles OS-level fullscreen mode for the window, flipping `is_fullscreen` and sending the corresponding viewport command to eframe/winit.
     pub fn toggle_fullscreen(&mut self, ctx: &egui::Context)
     {
         self.is_fullscreen = !self.is_fullscreen;
         ctx.send_viewport_cmd(egui::ViewportCommand::Fullscreen(self.is_fullscreen));
     }
 
-    /// Implements manual window-edge resizing for borderless/chrome-less
-    /// windows (used when `show_chrome` is false and the OS titlebar/border
-    /// is hidden, so there's no native resize handle).
-    ///
-    /// Each frame, checks how close the pointer is to each of the four
-    /// window edges (within `stroke_width` points). If it's near an edge or
-    /// corner, sets an appropriate resize cursor icon and, if the primary
-    /// mouse button is pressed there, asks the OS/windowing system to begin
-    /// a native interactive resize in that direction via
-    /// `ViewportCommand::BeginResize`.
+/*  Implements manual window-edge resizing for borderless/chrome-less windows (used when `show_chrome` is false
+    and the OS titlebar/border is hidden, so there's no native resize handle).
+
+    Each frame, checks how close the pointer is to each of the four window edges (within `stroke_width` points).
+    If it's near an edge or corner, sets an appropriate resize cursor icon and, if the primary mouse button is
+    pressed there, asks the OS/windowing system to begin a native interactive resize in that direction via
+    `ViewportCommand::BeginResize`. */
+
     fn handle_window_resize_edges(&self, ctx: &egui::Context)
     {
         use egui::{ResizeDirection, ViewportCommand};
@@ -390,18 +401,15 @@ impl ImageViewerApp
 
 impl eframe::App for ImageViewerApp
 {
-    /// Main per-frame update/draw entry point, called by eframe every frame.
-    ///
-    /// Order of operations:
-    /// 1. If custom (chrome-less) window mode is active, run manual edge
-    ///    resize hit-testing/cursor logic.
-    /// 2. On Windows builds with the `win7` feature, force dark visuals
-    ///    (workaround for lack of native dark-mode detection on Win7).
-    /// 3. Delegate all actual widget layout/drawing to `ui::update`.
-    /// 4. If an `initial_file` is still pending, open it now (handles the
-    ///    "launched via file manager" case).
-    /// 5. On the very first frame only, center the window on the primary
-    ///    monitor based on its reported size.
+/*  Main per-frame update/draw entry point, called by eframe every frame.
+
+    Order of operations:
+    1. If custom (chrome-less) window mode is active, run manual edge resize hit-testing/cursor logic.
+    2. On Windows builds with the `win7` feature, force dark visuals (workaround for lack of native dark-mode detection on Win7).
+    3. Delegate all actual widget layout/drawing to `ui::update`.
+    4. If an `initial_file` is still pending, open it now (handles the "launched via file manager" case).
+    5. On the very first frame only, center the window on the primary monitor based on its reported size. */
+
     fn ui(&mut self, ui: &mut egui::Ui, frame: &mut eframe::Frame)
     {
         // Some junk to do with turning decorations off but enabling adjustable window handles.

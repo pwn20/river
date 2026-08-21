@@ -89,6 +89,16 @@ pub struct AdjustState
     pub thumbnail_base:   Option<DynamicImage>,
     pub original_texture: Option<egui::TextureHandle>,
     pub preview_texture:  Option<egui::TextureHandle>,
+
+    /* If the dialog was opened with an active selection box, this holds
+     * that selection mapped into full-resolution image pixel coordinates
+     * as (x, y, width, height). `thumbnail_base` and `original_texture`
+     * are then built from just that sub-region rather than the whole
+     * image, and "Apply" writes the adjusted result back into only that
+     * region of the full image instead of replacing it entirely.
+     * `None` means the dialog is operating on the whole image, same as
+     * before this field existed. */
+    pub source_rect: Option<(u32, u32, u32, u32)>,
 }
 
 impl AdjustState
@@ -130,6 +140,7 @@ impl Default for AdjustState
             thumbnail_base:   None,
             original_texture: None,
             preview_texture:  None,
+            source_rect:      None,
         }
     }
 }

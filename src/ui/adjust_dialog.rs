@@ -64,6 +64,19 @@ pub fn show_adjust_dialog(app: &mut ImageViewerApp, ctx: &egui::Context)
         // Viewports require a layout panel, acting as the new top-level canvas
         egui::CentralPanel::default().show(viewport_ctx, |ui|
         {
+            // ── Scope indicator ─────────────────────────────────────────────
+            let scope_label = match app.adjust_state.source_rect
+            {
+                Some((_, _, w, h)) => format!("Editing selection ({w}\u{d7}{h}px)"),
+                None => "Editing full image".to_string(),
+            };
+            ui.label(
+                egui::RichText::new(scope_label)
+                    .italics()
+                    .color(egui::Color32::from_gray(150)),
+            );
+            ui.add_space(4.0);
+
             // ── Thumbnail panes ───────────────────────────────────────────────
             let avail_w = ui.available_width();
             let pane_w  = (avail_w - ui.spacing().item_spacing.x) / 2.0;
@@ -141,12 +154,25 @@ pub fn show_adjust_dialog(app: &mut ImageViewerApp, ctx: &egui::Context)
     /* Apply bakes the current adjustment settings into the full-resolution
      * image (not just the thumbnail preview) and loads that as the new
      * working image, then closes the dialog. Cancel just closes it,
-     * discarding any adjustments. */
+     * discarding any adjustments.
+     *
+     * If the dialog was scoped to a selection (`source_rect` is set), only
+     * that region of the full image is touched and everything outside it
+     * is left byte-for-byte untouched; otherwise the whole image is
+     * adjusted as before. Either way the selection box itself is left in
+     * place afterward (both on Apply and Cancel) so it can immediately be
+     * re-adjusted, copied, etc. */
     if apply
     {
-        let adjusted = app.image.as_ref()
-            .map(|img| image_utils::apply_adjustments(img, &app.adjust_state));
-        
+        let adjusted = app.image.as_ref().map(|img|
+        {
+            match app.adjust_state.source_rect
+            {
+                Some(rect) => image_utils::apply_adjustments_region(img, &app.adjust_state, rect),
+                None       => image_utils::apply_adjustments(img, &app.adjust_state),
+            }
+        });
+
         if let Some(adj) = adjusted
         {
             app.load_dynamic_image(ctx, adj);

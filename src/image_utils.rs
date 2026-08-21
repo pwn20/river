@@ -74,30 +74,34 @@ pub fn map_screen_to_image_pixels(
 }
 
 /*
- * Crops the current image to the user's selection box and pushes the
- * result onto the system clipboard as raw image data.
+ * Maps a selection box's two (unsorted) drag corners into a normalized,
+ * clamped full-resolution image pixel rectangle: `(x, y, width, height)`.
  *
- * The two corners (`start`/`end`) come straight from the drag gesture and
- * are not assumed to be sorted, so each is independently mapped to image
- * pixel space (respecting any active flip) before being sorted into a
- * proper top-left/bottom-right rectangle. The rect is then clamped to the
- * image bounds, cropped, and copied out via `arboard`. Both the width/height
- * are floored at 1px to avoid degenerate empty crops. Errors from clipboard
- * access are logged to stderr rather than surfaced to the UI.
+ * Each corner is independently mapped to image pixel space (respecting any
+ * active flip) before being sorted into a proper top-left/bottom-right
+ * rectangle - this must happen in that order (map, then sort) rather than
+ * sorting in screen space first, since flipping can swap which corner ends
+ * up smaller. The result is clamped to the image bounds, and both
+ * width/height are floored at 1px to avoid degenerate empty rects.
+ *
+ * Shared by the clipboard-copy path and the selection-scoped "Adjust
+ * image" path so both agree on exactly which pixels a given on-screen
+ * selection corresponds to.
  */
-pub fn copy_selection_to_clipboard(
-    img: &DynamicImage,
+pub fn selection_to_image_rect(
     start: egui::Pos2,
     end: egui::Pos2,
     image_rect: egui::Rect,
+    img_dim: (u32, u32),
     flipped_h: bool,
     flipped_v: bool,
-) {
-    let (img_w, img_h) = img.dimensions();
+) -> (u32, u32, u32, u32)
+{
+    let (img_w, img_h) = img_dim;
 
     // Map the raw drag corners directly — don't pre-sort in screen space.
-    let (px_a_x, px_a_y) = map_screen_to_image_pixels(start, image_rect, (img_w, img_h), flipped_h, flipped_v);
-    let (px_b_x, px_b_y) = map_screen_to_image_pixels(end, image_rect, (img_w, img_h), flipped_h, flipped_v);
+    let (px_a_x, px_a_y) = map_screen_to_image_pixels(start, image_rect, img_dim, flipped_h, flipped_v);
+    let (px_b_x, px_b_y) = map_screen_to_image_pixels(end, image_rect, img_dim, flipped_h, flipped_v);
 
     // Now sort in image space, after the flip has been applied.
     let mut px_x1 = px_a_x.min(px_b_x);
@@ -112,6 +116,30 @@ pub fn copy_selection_to_clipboard(
 
     let width = px_x2.saturating_sub(px_x1).max(1);
     let height = px_y2.saturating_sub(px_y1).max(1);
+
+    (px_x1, px_y1, width, height)
+}
+
+/*
+ * Crops the current image to the user's selection box and pushes the
+ * result onto the system clipboard as raw image data.
+ *
+ * The selection is mapped to image pixel space via `selection_to_image_rect`
+ * (see that function for the corner/flip handling), then cropped and
+ * copied out via `arboard`. Errors from clipboard access are logged to
+ * stderr rather than surfaced to the UI.
+ */
+pub fn copy_selection_to_clipboard(
+    img: &DynamicImage,
+    start: egui::Pos2,
+    end: egui::Pos2,
+    image_rect: egui::Rect,
+    flipped_h: bool,
+    flipped_v: bool,
+) {
+    let (img_w, img_h) = img.dimensions();
+    let (px_x1, px_y1, width, height) =
+        selection_to_image_rect(start, end, image_rect, (img_w, img_h), flipped_h, flipped_v);
 
     let cropped = image::imageops::crop_imm(img, px_x1, px_y1, width, height).to_image();
 
@@ -222,6 +250,34 @@ pub fn update_adjust_preview(ctx: &egui::Context, state: &mut AdjustState)
 pub fn apply_adjustments(img: &DynamicImage, state: &AdjustState) -> DynamicImage
 {
     DynamicImage::ImageRgba8(apply_adjustments_to_buffer(&img.to_rgba8(), state))
+}
+
+/*
+ * Applies all adjustments from `state` to only the `(x, y, width, height)`
+ * sub-region of `img`, leaving every other pixel in the image untouched.
+ *
+ * Used for the "adjust selection" flow: the full image is cloned, just the
+ * selected rectangle is cropped out and run through the same
+ * `apply_adjustments_to_buffer` pipeline the whole-image path and the live
+ * preview use, and the adjusted result is stamped back into the clone at
+ * its original position. `rect` is expected to already be clamped to the
+ * image bounds (see `selection_to_image_rect`).
+ */
+pub fn apply_adjustments_region(
+    img:   &DynamicImage,
+    state: &AdjustState,
+    rect:  (u32, u32, u32, u32),
+) -> DynamicImage
+{
+    let (x, y, w, h) = rect;
+
+    let mut base = img.to_rgba8();
+    let region = image::imageops::crop_imm(img, x, y, w, h).to_image();
+    let adjusted_region = apply_adjustments_to_buffer(&region, state);
+
+    image::imageops::replace(&mut base, &adjusted_region, x as i64, y as i64);
+
+    DynamicImage::ImageRgba8(base)
 }
 
 /*
