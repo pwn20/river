@@ -1,5 +1,6 @@
 # Build output
 /target
+/binaries
 
 # Vendored/redistributable DLLs — rebuilt or fetched separately, not tracked
 /mesa3d_dlls
