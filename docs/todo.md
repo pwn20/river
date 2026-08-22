@@ -26,7 +26,6 @@
 - [ ] Save / Save As modal and functionality
 - [ ] Custom view mode between "100% zoom" and "fit to window" *(TBD — may not be worth it)*
 - [ ] Undo support (rotation, flip, RGB/contrast/brightness/gamma/saturation, resize), with multiple undo levels
-- [ ] Restrict the adjustment modal to the active selection, if one is drawn
 - [ ] Implement (or fix, if broken) drag-and-drop image loading
 
 ## Changes
